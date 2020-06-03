@@ -1,0 +1,129 @@
+variables:
+  DOCKER_VERSION: "17.09"
+  DOCKER_HEALTHCHECK_TIMEOUT: "60"
+  DOCKER_LOGIN: $ARTIFACTORY_USERNAME
+  DOCKER_PASSWORD: $ARTIFACTORY_PASSWORD
+  SONAR_LOGIN: $SONAR_USERNAME
+  SONAR_PASSWORD: $SONAR_PASSWORD
+  SONAR_TOKEN: $SONAR_TOKEN
+  REGISTRY_LOGIN_TEST_URL: dockerfactory-unstable-iva.si.francetelecom.fr --username $ARTIFACTORY_USERNAME --password $ARTIFACTORY_PASSWORD
+  REGISTRY_LOGIN_RELEASE_URL: dockerfactory-iva.si.francetelecom.fr --username $ARTIFACTORY_USERNAME --password $ARTIFACTORY_PASSWORD
+  CONTAINER_TEST_IMAGE: dockerfactory-unstable-iva.si.francetelecom.fr/oma-$CI_PROJECT_NAME
+  CONTAINER_RELEASE_IMAGE: dockerfactory-iva.si.francetelecom.fr/oma-$CI_PROJECT_NAME
+  MAVEN_OPTS: "-Dhttps.protocols=TLSv1.2 -Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"  
+
+cache:
+  key: one-key-to-rull-them-all
+  paths:
+    - .m2/repository
+    
+stages:
+  - lint
+  - build
+  - sonar
+  - maventest
+  - set_variables
+#  - deploypages1
+  - package
+#  - dockertest
+  
+.job_template: &job_definition
+  image: dockerproxy-iva.si.francetelecom.fr/docker:$DOCKER_VERSION  
+  services:
+    - dockerproxy-iva.si.francetelecom.fr/docker:$DOCKER_VERSION-dind
+  variables:
+    # Force a better storage driver because we use dind (https://docs.gitlab.com/ce/ci/docker/using_docker_build.html#using-the-overlayfs-driver)
+    DOCKER_DRIVER: overlay
+    # Because we use a private Registry to pull the dind image. Explanation: https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/1676#note_15233339
+    DOCKER_HOST: tcp://dockerproxy-iva.si.francetelecom.fr-docker:2375
+  tags:
+    - rsc
+    - docker-privileged
+    - shared
+  dependencies:
+    - set_variables
+  before_script:
+    - export TAG=`cat project_version`
+    - env | grep ^DOCKER_
+    - env | grep ^CI_
+    - docker info
+    - docker login $REGISTRY_LOGIN_TEST_URL
+
+
+###################################
+##### Stage to SET Variables ######
+###################################
+set_variables:
+  image: dockerproxy-iva.si.francetelecom.fr/maven:3.5.3-jdk-8
+  tags:
+  - shared
+  stage: set_variables
+  script:
+  - echo `mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec` > project_version
+  artifacts:
+    paths:
+    - project_version
+    - target
+    expire_in: '10m'
+
+# lint-job is used to check the syntax of the Dockerfile for best practices. It uses custom rules made by Devops Store.
+# Seriously! Don't remove these stage. If one test doesn't work for you, manually download the file .dockerlint.yml (from the link below) in your repository and comment the specific test.
+# Plus, report us the problem by creating an issue in https://gitlab.forge.orange-labs.fr/docker/orange-dockerfile-lint to see if we can correct it.
+lint-job:
+  image: dockerfactory-iva.si.francetelecom.fr/docker/orange-dockerfile-lint:0.2.7-alpine3.6-2
+  tags:
+    - shared
+  stage: lint
+  script:
+    - dockerfile_lint -f Dockerfile
+
+maven-build-job:
+  image: dockerproxy-iva.si.francetelecom.fr/maven:3.5-jdk-8
+  tags:
+    - shared
+  stage: build
+  script: "mvn $MAVEN_CLI_OPTS package -B"
+  artifacts:
+    paths:
+      - target/*.jar
+
+maven-test-job:
+  image: dockerproxy-iva.si.francetelecom.fr/maven:3.5.3-jdk-8
+  tags:
+    - shared
+  stage: maventest
+  script:
+    - mvn $MAVEN_CLI_OPTS verify -P all-tests
+  artifacts:
+    paths:
+    - target/site/jacoco-it/
+    - target/site/jacoco-ut/
+
+#pages:
+#  stage: deploypages
+#  dependencies:
+#    - maven-test-job
+#  tags:
+#    - rsc
+#    - docker
+#    - shared
+#  script:
+#   - mkdir public
+#   - mv target/site/jacoco-it public/jacoco-it
+#   - mv target/site/jacoco-ut public/jacoco-ut
+#  artifacts:
+#    paths:
+#      - public
+
+package-job:
+  <<: *job_definition
+  stage: package
+  script:
+    - docker build --pull -t $CONTAINER_TEST_IMAGE:$TAG .
+    - docker push $CONTAINER_TEST_IMAGE:$TAG
+    # Display the size of each layer
+    - docker history $CONTAINER_TEST_IMAGE:$TAG
+    # Display the total size of the image
+    - docker images $CONTAINER_TEST_IMAGE:$TAG
+  when: manual
