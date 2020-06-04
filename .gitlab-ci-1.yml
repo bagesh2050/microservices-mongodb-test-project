@@ -9,7 +9,8 @@ services:
   - docker:18-dind
   
 stages:
-  - Build image
+  #- Build image
+  - deploy
 
 docker build:
   stage: Build image
@@ -19,3 +20,9 @@ docker build:
   - echo "$DOCKER_PASSWORD" | docker login --username $DOCKER_USER --password-stdin
   - docker build -t $LATEST_VER .
   - docker push $LATEST_VER && docker image rm $LATEST_VER
+  
+deploy:
+  stage: deploy
+  #image: dtzar/helm-kubectl
+  script:
+    - kubectl apply -f deployment.yaml
