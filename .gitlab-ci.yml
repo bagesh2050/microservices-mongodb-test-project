@@ -1,10 +1,7 @@
 image: docker:stable
 
 variables:
-  LATEST_VER: angristan/app:latest
-  MAJOR_VER: angristan/app:2
-  MINOR_VER: angristan/app:2.3
-  PATCH_VER: angristan/app:2.3.1
+  LATEST_VER: bagesh2050/hello-world-java:0.0.5.RELEASE
 
 stages:
   - Build image
@@ -14,15 +11,12 @@ docker build:
   stage: Build image
   script:
   - docker info
-  - docker build -t $LATEST_VER -t $MAJOR_VER -t $MINOR_VER -t $PATCH_VER .
+  - docker build -t $LATEST_VER .
 
 docker push:
   stage: Push to Docker Hub
   only:
   - master
   script:
-  - echo "B$docker2050" | docker login -u "bagesh2050" --password-stdin
+  - docker login -u "bagesh2050" -p "B$docker2050"
   - docker push $LATEST_VER && docker image rm $LATEST_VER
-  - docker push $MAJOR_VER && docker image rm $MAJOR_VER
-  - docker push $MINOR_VER && docker image rm $MINOR_VER
-  - docker push $PATCH_VER && docker image rm $PATCH_VER
