@@ -23,11 +23,17 @@ docker build:
   only:
     - master
   
+ stage: deploy
+  script: make deploy
+  environment:
+    name: production
+    url: https://example.com/
+  
 deploy:
   stage: deploy
   image: dtzar/helm-kubectl
-  script:
-    - kubectl version
+  script: make deploy
+    #- kubectl version
     #- kubectl config set-cluster k8s --server="${SERVER}"
     #- kubectl config set clusters.k8s.certificate-authority-data ${CERTIFICATE_AUTHORITY_DATA}
     #- kubectl config set-credentials gitlab --token="${USER_TOKEN}"
@@ -35,4 +41,7 @@ deploy:
     #- kubectl config use-context default
     - sed -i "s/<VERSION>/${VERSION}/g" deployment.yaml
     - kubectl apply -f deployment.yaml
+  environment:
+    name: production
+    url: https://example.com/
     
