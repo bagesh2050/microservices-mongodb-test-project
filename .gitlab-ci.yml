@@ -1,0 +1,85 @@
+variables:
+  # Which version of Docker to use to build your Docker image (full list here : https://hub.docker.com/r/library/docker/)
+  DOCKER_VERSION: "17.06"
+  DOCKER_DRIVER: overlay
+  DOCKER_HOST: tcp://dockerproxy-iva.si.francetelecom.fr-docker:2375
+  DOCKER_HEALTHCHECK_TIMEOUT: "60"
+  REGISTRY_UNSTABLE_URL: dockerfactory-unstable-iva.si.francetelecom.fr
+  REGISTRY_STABLE_URL: dockerfactory-iva.si.francetelecom.fr
+
+stages:
+  - set_variables
+  - oc_deploy
+
+###################################
+######## INIT Steps to SET ########
+###################################
+.oc_init_context_noprod: &oc_init_context_noprod_definition
+  tags:
+    - rsc
+    - docker-privileged
+    - shared
+  dependencies:
+    - set_variables
+  before_script:
+    - export TOKEN=`cat token_ocp`
+    - export OCP_URL=`cat url_ocp`
+    - export OCP_DNS=`cat dns_ocp`
+    - export OCP_PROJECT=`cat project_ocp`
+    - echo $OCP_DNS
+    - chmod +x ./deploy/coreauth/init_scripts/set_token.sh
+    - ./deploy/coreauth/init_scripts/set_token.sh
+    #- export OCP_TOKEN=`cat token`
+    #- rm -f token
+    #- export DECRYPT_KEY=`cat key`
+    #- rm -f key
+    - oc login ${OCP_URL}  --token=${OCP_TOKEN}   --insecure-skip-tls-verify
+    - oc project ${OCP_PROJECT}
+    - echo $CI_PIPELINE_ID
+  only:
+    - web
+    - triggers
+
+###################################
+##### Stage to SET Variables ######
+###################################
+set_variables:
+  image: dockerfactory-iva.si.francetelecom.fr/docker/orange-ansible:2.1.6.0-centos7-3
+  tags:
+    - rsc
+    - docker-privileged
+    - shared
+  stage: set_variables
+  script:
+    - chmod +x ./deploy/coreauth/init_scripts/set_variables.sh
+    - ./deploy/coreauth/init_scripts/set_variables.sh
+  artifacts:
+    paths:
+      - url_ocp
+      - token_ocp
+      - dns_ocp
+      - project_ocp
+      - platform_db
+      - ow_tenant
+    expire_in: '10m'
+  only:
+    - web
+    - triggers
+
+
+oc_deploy_coreapi_oauth:
+  <<: *oc_init_context_noprod_definition
+  stage: oc_deploy
+  image: registry.forge.orange-labs.fr/kermit/tooling/oc:latest
+  script:
+    - echo "Creating mongodb service and endpoints"
+    - oc process -f deploy/coreauth/config/service-mongodb-$COUNTRY-$PLATFORM.yml  -p country="$COUNTRY" -p platform="$PLATFORM" | oc apply -f -
+    - echo "Cleaning Configmaps"
+    - oc delete configmap coreauth-$COUNTRY-$PLATFORM
+    - echo "Creating configmaps"
+    - oc create configmap coreauth-$COUNTRY-$PLATFORM --from-file deploy/coreauth/config/properties-$COUNTRY-$PLATFORM.yml
+    - echo "Creating deployment,service and Route"
+    - oc process -f deploy/coreauth/oc_deploy.yml -p country="$COUNTRY" -p platform="$PLATFORM" -p version="$VERSION" | oc apply -f -
+  only:
+    - web
+    - triggers
