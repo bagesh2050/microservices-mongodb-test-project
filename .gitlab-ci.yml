@@ -27,7 +27,7 @@ deploy:
   stage: deploy
   image: dtzar/helm-kubectl
   script:
-     - echo ${SERVER}
+     - echo "${SERVER}"
     #- kubectl version
     #- kubectl config set-cluster k8s --server="${SERVER}"
     #- kubectl config set clusters.k8s.certificate-authority-data ${CERTIFICATE_AUTHORITY_DATA}
