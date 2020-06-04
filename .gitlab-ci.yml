@@ -12,14 +12,14 @@ stages:
   #- Build image
   - deploy
 
-docker build:
-  stage: Build image
-  only:
-    - master
-  script:
-  - echo "$DOCKER_PASSWORD" | docker login --username $DOCKER_USER --password-stdin
-  - docker build -t $LATEST_VER .
-  - docker push $LATEST_VER && docker image rm $LATEST_VER
+#docker build:
+#  stage: Build image
+#  only:
+#    - master
+#  script:
+#  - echo "$DOCKER_PASSWORD" | docker login --username $DOCKER_USER --password-stdin
+#  - docker build -t $LATEST_VER .
+#  - docker push $LATEST_VER && docker image rm $LATEST_VER
   
 deploy:
   stage: deploy
