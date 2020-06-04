@@ -24,7 +24,7 @@ docker build:
   
 deploy:
   stage: deploy
-  #image: dtzar/helm-kubectl
+  image: dtzar/helm-kubectl
   script:
     - kubectl apply -f deployment.yaml
     
