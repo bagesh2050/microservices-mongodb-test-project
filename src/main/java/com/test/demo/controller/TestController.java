@@ -8,6 +8,6 @@ public class TestController {
 
 	@GetMapping("/api")
 	public String getUserName() {
-		return "Bagesh";
+		return "{\"name\":\"Bagesh Sharma V4\"}";
 	}
 }
