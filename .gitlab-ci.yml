@@ -10,18 +10,21 @@ services:
   
 stages:
   - Build image
-  - Push to Docker Hub
+  #- Push to Docker Hub
 
 docker build:
   stage: Build image
   script:
-  - docker info
-  - docker build -t $LATEST_VER .
-
-docker push:
-  stage: Push to Docker Hub
-  only:
-  - master
-  script:
+  #- docker info
   - echo "$MY_PASSWORD" | docker login --username bagesh2050 --password-stdin
-  - docker push $LATEST_VER && docker image rm $LATEST_VER
+  - docker build -t $LATEST_VER .
+  - docker push $LATEST_VER
+  - echo $LATEST_VER
+
+#docker push:
+#  stage: Push to Docker Hub
+#  only:
+#  - master
+#  script:
+#  - echo "$MY_PASSWORD" | docker login --username bagesh2050 --password-stdin
+#  - docker push $LATEST_VER && docker image rm $LATEST_VER
