@@ -21,6 +21,6 @@ spec:
     spec:
       containers:
       - name: hello-world-java
-        image: bagesh2050/hello-world-java:<VERSION>
+        image: bagesh2050/hello-world-java:0.0.6.RELEASE
         ports:
         - containerPort: 5000
