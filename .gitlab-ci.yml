@@ -1,28 +1,37 @@
-image: docker:stable
+image: docker:18-git
 
 variables:
-  LATEST_VER: angristan/app:latest
-  MAJOR_VER: angristan/app:2
-  MINOR_VER: angristan/app:2.3
-  PATCH_VER: angristan/app:2.3.1
-
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
+  LATEST_VER: bagesh2050/hello-world-java:0.0.6.RELEASE
+  VERSION: 0.0.6.RELEASE
+  
+services:
+  - docker:18-dind
+  
 stages:
   - Build image
-  - Push to Docker Hub
+  - deploy
 
 docker build:
   stage: Build image
   script:
-  - docker info
-  - docker build -t $LATEST_VER -t $MAJOR_VER -t $MINOR_VER -t $PATCH_VER .
-
-docker push:
-  stage: Push to Docker Hub
+    - echo "$DOCKER_PASSWORD" | docker login --username $DOCKER_USER --password-stdin
+    - docker build -t $LATEST_VER .
+    - docker push $LATEST_VER && docker image rm $LATEST_VER
+  when: manual
   only:
-  - master
+    - master
+  
+deploy:
+  stage: deploy
+  image: dtzar/helm-kubectl
   script:
-  - echo "B$docker2050" | docker login -u "bagesh2050" --password-stdin
-  - docker push $LATEST_VER && docker image rm $LATEST_VER
-  - docker push $MAJOR_VER && docker image rm $MAJOR_VER
-  - docker push $MINOR_VER && docker image rm $MINOR_VER
-  - docker push $PATCH_VER && docker image rm $PATCH_VER
+    - kubectl config set-cluster k8s --server="${SERVER}"
+    - kubectl config set clusters.k8s.certificate-authority-data ${CERTIFICATE_AUTHORITY_DATA}
+    - kubectl config set-credentials gitlab --token="${USER_TOKEN}"
+    - kubectl config set-context default --cluster=k8s --user=gitlab
+    - kubectl config use-context default
+    - sed -i "s/<VERSION>/${VERSION}/g" deployment.yaml
+    - kubectl apply -f deployment.yaml
+    
