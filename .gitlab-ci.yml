@@ -3,28 +3,19 @@ image: docker:18-git
 variables:
   DOCKER_HOST: tcp://docker:2375/
   DOCKER_DRIVER: overlay2
-  LATEST_VER: bagesh2050/hello-world-java:0.0.5.RELEASE
+  LATEST_VER: bagesh2050/hello-world-java:0.0.6.RELEASE
   
 services:
   - docker:18-dind
   
 stages:
   - Build image
-  #- Push to Docker Hub
 
 docker build:
   stage: Build image
+  only:
+    - master
   script:
-  #- docker info
-  - echo "$MY_PASSWORD" | docker login --username bagesh2050 --password-stdin
+  - echo "$DOCKER_PASSWORD" | docker login --username $DOCKER_USER --password-stdin
   - docker build -t $LATEST_VER .
-  - docker push $LATEST_VER
-  - echo $LATEST_VER
-
-#docker push:
-#  stage: Push to Docker Hub
-#  only:
-#  - master
-#  script:
-#  - echo "$MY_PASSWORD" | docker login --username bagesh2050 --password-stdin
-#  - docker push $LATEST_VER && docker image rm $LATEST_VER
+  - docker push $LATEST_VER && docker image rm $LATEST_VER
