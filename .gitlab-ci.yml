@@ -1,8 +1,14 @@
-image: docker:stable
+#image: docker:stable
+image: docker:18-git
 
 variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
   LATEST_VER: bagesh2050/hello-world-java:0.0.5.RELEASE
-
+  
+services:
+  - docker:18-dind
+  
 stages:
   - Build image
   - Push to Docker Hub
