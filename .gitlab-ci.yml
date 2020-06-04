@@ -24,5 +24,5 @@ docker push:
   only:
   - master
   script:
-  - docker login -u "bagesh2050" -p "B$docker2050"
+  - echo "$MY_PASSWORD" | docker login --username bagesh2050 --password-stdin
   - docker push $LATEST_VER && docker image rm $LATEST_VER
