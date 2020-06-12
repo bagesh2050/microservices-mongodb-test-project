@@ -19,7 +19,7 @@ docker build:
     - echo "$DOCKER_PASSWORD" | docker login --username $DOCKER_USER --password-stdin
     - docker build -t $LATEST_VER .
     - docker push $LATEST_VER && docker image rm $LATEST_VER
-  when: manual
+  #when: manual
   only:
     - master
   
