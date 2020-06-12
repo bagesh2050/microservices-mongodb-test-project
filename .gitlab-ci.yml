@@ -30,5 +30,5 @@ deploy:
     #- sed -i "s/<VERSION>/${VERSION}/g" deployment.yaml
     - kubectl apply -f deployment.yaml
   environment:
-    name: production
+    name: test
     url: https://35.188.33.61
