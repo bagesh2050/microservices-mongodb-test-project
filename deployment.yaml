@@ -21,9 +21,30 @@ spec:
     spec:
       containers:
       - name: hello-world-java
-        image: bagesh2050/hello-world-java:0.0.11.RELEASE
+        image: bagesh2050/hello-world-java:0.0.14.RELEASE
         ports:
         - containerPort: 5000
+        env:
+        - name: MONGO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: username
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: password
+        - name: MONGO_DB
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-conf
+              key: database
+        - name: MONGO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-conf
+              key: host
 ---    
 apiVersion: v1
 kind: Service

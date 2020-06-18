@@ -1,0 +1,26 @@
+server:
+    port: 5000
+    
+spring:
+  application:
+    name: hello-world-java
+  data:
+    mongodb:
+     host: '${MONGO_HOST}'
+     database: '${MONGO_DB}'
+     port: 27017
+     username: '${MONGO_USERNAME}'
+     password: '${MONGO_PASSWORD}'
+  cloud:
+    kubernetes:
+      secrets: 
+        name: mysecret
+      config:
+        enable: true
+        sources: 
+        - namespace: default
+          name: mongo-conf
+      reload:
+        enable: true
+        mode: polling
+        period : 1000

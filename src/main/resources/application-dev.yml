@@ -1,0 +1,6 @@
+server:
+  port: 7000
+spring:
+  data:
+    mongodb:
+      uri: mongodb://authwriteUser:passAuthWriteUser@localhost:27017/coreauth

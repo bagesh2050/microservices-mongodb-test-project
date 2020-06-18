@@ -1,0 +1,72 @@
+
+#### First create Persistent Volume
+
+kubectl create -f pv.yml
+
+#### Create ConfigMaps
+
+kubectl create -f mongo-config.yml
+
+#### Create Secrets - [Secrets are base64 encoded in mongo-secret.yml (both username and password)]
+ 
+kubectl create -f mongo-secret.yml
+
+#### Now create MongoDB pods
+
+kubectl create -f mongo-deployment.yaml
+
+#### To know the staus of pods
+
+kubectl get pods 
+
+#### To check mongo db files
+
+kubectl exec mongo-0 ls 
+
+####  Go to Mongo Pod instance to create database and User
+
+kubectl exec mongo-0 -it -- /bin/sh
+
+#### login to mongoDB server for user creation
+
+mongo --port 27017 -u "authwriteUser" -p "passAuthWriteUser" --authenticationDatabase "admin" 
+
+use coreauth
+
+db.createUser(
+    {
+      user: "authwriteUser",
+      pwd: "passAuthWriteUser",
+      roles: [
+         { role: "readWrite", db: "coreauth" }
+      ]
+    }
+);
+
+#### Now your MongoDB cluster is running fine. Now its time to deploy application
+
+#### Deploy your application
+
+kubectl apply -f deployment.yaml
+
+#### Now your application pods are running and are connected with MongoDB
+
+#### Test your endpoints now -
+
+curl --location --request POST 'http://localhost:30001/user' \
+--header 'username: user' \
+--header 'password: password1' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "login": "bagesh",
+    "password": "12345"
+}'
+
+http://localhost:30001/user/bagesh
+
+
+
+
+
+
+
